@@ -1,5 +1,8 @@
 /secret/
 /dist/
+/tools/
+/.agents/
+/.codex/
 *.zip
 .env
 .env.*
