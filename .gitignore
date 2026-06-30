@@ -1,0 +1,7 @@
+/secret/
+/dist/
+*.zip
+.env
+.env.*
+.DS_Store
+Thumbs.db

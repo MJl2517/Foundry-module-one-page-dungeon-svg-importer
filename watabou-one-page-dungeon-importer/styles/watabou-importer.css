@@ -1,0 +1,296 @@
+.watabou-opd-directory-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+
+.watabou-one-page-dungeon-importer {
+  --watabou-opd-accent-strong: #df8a5d;
+  --watabou-opd-border: rgba(170, 135, 105, 0.34);
+  --watabou-opd-surface: rgba(18, 18, 20, 0.58);
+  --watabou-opd-surface-strong: rgba(28, 25, 24, 0.78);
+  --watabou-opd-text: #f1ece3;
+  --watabou-opd-muted: rgba(226, 220, 210, 0.68);
+  --watabou-opd-field: rgba(15, 13, 14, 0.72);
+  --watabou-opd-field-focus: rgba(223, 138, 93, 0.16);
+}
+
+.watabou-one-page-dungeon-importer .window-header {
+  border-bottom: 1px solid var(--watabou-opd-border);
+  color: var(--watabou-opd-text);
+  background: rgba(12, 12, 14, 0.94);
+}
+
+.watabou-one-page-dungeon-importer .window-content {
+  height: 100%;
+  padding: 10px;
+  overflow: hidden;
+  color: var(--watabou-opd-text);
+  background: linear-gradient(125deg, rgba(45, 36, 32, 0.34), rgba(8, 10, 14, 0.46));
+}
+
+.watabou-one-page-dungeon-importer .window-content > section,
+.watabou-one-page-dungeon-importer .window-content > .application-content,
+.watabou-one-page-dungeon-importer .window-content > [data-application-part],
+.watabou-one-page-dungeon-importer [data-application-part="main"] {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.watabou-one-page-dungeon-importer.watabou-opd-is-scrollable .window-content,
+.watabou-one-page-dungeon-importer.watabou-opd-is-scrollable .window-content > section,
+.watabou-one-page-dungeon-importer.watabou-opd-is-scrollable .window-content > .application-content,
+.watabou-one-page-dungeon-importer.watabou-opd-is-scrollable .window-content > [data-application-part],
+.watabou-one-page-dungeon-importer.watabou-opd-is-scrollable [data-application-part="main"] {
+  overflow: auto;
+}
+
+.watabou-one-page-dungeon-importer-help .window-content > section,
+.watabou-one-page-dungeon-importer-help .window-content > .application-content,
+.watabou-one-page-dungeon-importer-help .window-content > [data-application-part],
+.watabou-one-page-dungeon-importer-help [data-application-part="main"] {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.watabou-opd-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  overflow: visible;
+}
+
+.watabou-opd-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--watabou-opd-border);
+  border-radius: 8px;
+  background: var(--watabou-opd-surface);
+}
+
+.watabou-opd-section-header h2 {
+  flex: 1 1 auto;
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  color: #fff3e4;
+  font-size: 15px;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.watabou-opd-icon-button {
+  width: 30px;
+  min-width: 30px;
+  height: 30px;
+  min-height: 30px;
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--watabou-opd-border);
+  border-radius: 6px;
+  color: var(--watabou-opd-text);
+  background: rgba(255, 255, 255, 0.045);
+  cursor: pointer;
+}
+
+.watabou-opd-icon-button:hover,
+.watabou-opd-icon-button:focus-visible {
+  border-color: var(--watabou-opd-accent-strong);
+  color: #fff3e4;
+  outline: 0;
+  background: rgba(223, 138, 93, 0.16);
+}
+
+.watabou-opd-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--watabou-opd-border);
+  border-radius: 8px;
+  background: var(--watabou-opd-surface);
+}
+
+.watabou-opd-field label {
+  font-weight: 600;
+  color: #fff3e4;
+}
+
+.watabou-opd-field input {
+  width: 100%;
+  min-width: 0;
+  height: 30px;
+  border: 1px solid var(--watabou-opd-border);
+  border-radius: 6px;
+  color: var(--watabou-opd-text);
+  background: var(--watabou-opd-field);
+}
+
+.watabou-opd-field input:focus {
+  border-color: var(--watabou-opd-accent-strong);
+  outline: 0;
+  background: var(--watabou-opd-field-focus);
+}
+
+.watabou-opd-hint {
+  color: var(--watabou-opd-muted);
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.watabou-opd-field input[type="file"][data-svg-file] {
+  display: none;
+}
+
+.watabou-opd-dropzone {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.25rem 0.6rem;
+  align-items: center;
+  min-height: 4.25rem;
+  padding: 0.75rem;
+  border: 1px dashed var(--watabou-opd-border);
+  border-radius: 6px;
+  color: var(--watabou-opd-text);
+  background: var(--watabou-opd-field);
+  cursor: pointer;
+}
+
+.watabou-opd-dropzone:hover,
+.watabou-opd-dropzone:focus-visible {
+  border-color: var(--watabou-opd-accent-strong);
+  background: var(--watabou-opd-field-focus);
+}
+
+.watabou-opd-dropzone i {
+  grid-row: span 2;
+  font-size: 1.4rem;
+  color: #fff3e4;
+}
+
+.watabou-opd-dropzone small {
+  color: var(--watabou-opd-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.watabou-opd-dropzone.is-dragging {
+  border-color: var(--watabou-opd-accent-strong);
+  background: rgba(223, 138, 93, 0.16);
+}
+
+.watabou-opd-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.watabou-opd-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+  padding-top: 2px;
+}
+
+.watabou-opd-open-button,
+.watabou-opd-actions button {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 12px;
+  border: 1px solid var(--watabou-opd-border);
+  border-radius: 6px;
+  color: var(--watabou-opd-text);
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.watabou-opd-open-button {
+  align-self: stretch;
+}
+
+.watabou-opd-open-button:hover,
+.watabou-opd-open-button:focus-visible,
+.watabou-opd-actions button:hover,
+.watabou-opd-actions button:focus-visible {
+  border-color: var(--watabou-opd-accent-strong);
+  color: #fff3e4;
+  outline: 0;
+  background: rgba(223, 138, 93, 0.16);
+}
+
+.watabou-opd-help {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  height: 100%;
+  min-height: 0;
+  box-sizing: border-box;
+  padding: 8px;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+.watabou-opd-help-intro,
+.watabou-opd-help-card p,
+.watabou-opd-help-card h3 {
+  margin: 0;
+}
+
+.watabou-opd-help-intro {
+  padding: 10px;
+  border: 1px solid var(--watabou-opd-border);
+  border-radius: 8px;
+  color: #fff3e4;
+  background: var(--watabou-opd-surface);
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.watabou-opd-help-card {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid var(--watabou-opd-card-border, var(--watabou-opd-border));
+  border-left-width: 4px;
+  border-radius: 8px;
+  background: var(--watabou-opd-card-bg, var(--watabou-opd-surface));
+}
+
+.watabou-opd-help-card h3 {
+  color: #fff3e4;
+  font-size: 15px;
+  line-height: 1.2;
+}
+
+.watabou-opd-help-card p {
+  color: var(--watabou-opd-text);
+  line-height: 1.35;
+}
+
+.watabou-opd-help-card--warning {
+  --watabou-opd-card-border: rgba(223, 138, 93, 0.78);
+  --watabou-opd-card-bg: rgba(223, 138, 93, 0.12);
+}
+
+.watabou-opd-help-card--info {
+  --watabou-opd-card-border: rgba(105, 160, 210, 0.72);
+  --watabou-opd-card-bg: rgba(105, 160, 210, 0.12);
+}
+
+.watabou-opd-help-card--danger {
+  --watabou-opd-card-border: rgba(210, 82, 82, 0.72);
+  --watabou-opd-card-bg: rgba(210, 82, 82, 0.12);
+}

@@ -1,0 +1,42 @@
+<form class="watabou-opd-form" autocomplete="off">
+  <header class="watabou-opd-section-header">
+    <h2>{{localize "WatabouOPD.ImportTitle"}}</h2>
+    <button type="button" class="watabou-opd-icon-button" title="{{localize "WatabouOPD.HelpButton"}}" aria-label="{{localize "WatabouOPD.HelpButton"}}" data-help>
+      <i class="fa-solid fa-circle-question"></i>
+    </button>
+  </header>
+
+  <button type="button" class="watabou-opd-open-button" data-open-watabou>
+    <i class="fa-solid fa-arrow-up-right-from-square"></i>
+    <span>{{localize "WatabouOPD.OpenWatabou"}}</span>
+  </button>
+
+  <div class="watabou-opd-field">
+    <label for="watabou-opd-svg">{{localize "WatabouOPD.SvgFile"}}</label>
+    <div class="watabou-opd-dropzone" data-dropzone>
+      <i class="fa-solid fa-file-import"></i>
+      <span data-drop-label>{{localize "WatabouOPD.DropSvg"}}</span>
+      <small data-file-name>{{localize "WatabouOPD.NoFileSelected"}}</small>
+    </div>
+    <input id="watabou-opd-svg" type="file" accept=".svg,image/svg+xml" data-svg-file>
+  </div>
+
+  <div class="watabou-opd-field">
+    <label for="watabou-opd-name">{{localize "WatabouOPD.SceneName"}}</label>
+    <input id="watabou-opd-name" type="text" value="{{sceneName}}" placeholder="{{localize "WatabouOPD.SceneNamePlaceholder"}}" data-scene-name>
+  </div>
+
+  <div class="watabou-opd-field">
+    <label for="watabou-opd-grid-size">{{localize "WatabouOPD.GridSize"}}</label>
+    <input id="watabou-opd-grid-size" type="number" min="25" max="400" step="1" value="{{gridSize}}" data-grid-size>
+    <small class="watabou-opd-hint">{{localize "WatabouOPD.GridSizeHint"}}</small>
+  </div>
+
+  <footer class="watabou-opd-actions">
+    <button type="button" data-cancel>{{localize "WatabouOPD.Cancel"}}</button>
+    <button type="submit" data-import>
+      <i class="fa-solid fa-file-import"></i>
+      <span>{{localize "WatabouOPD.Import"}}</span>
+    </button>
+  </footer>
+</form>
