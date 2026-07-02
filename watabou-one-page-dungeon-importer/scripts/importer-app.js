@@ -3,6 +3,7 @@ import { MODULE_ID, MODULE_PATH } from "./constants.js";
 
 const DEFAULT_GRID_SIZE = 72;
 const WATABOU_URL = "https://watabou.itch.io/one-page-dungeon";
+const WATABOU_CAVES_URL = "https://watabou.github.io/cave-generator/";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -68,6 +69,7 @@ export class ImporterApp extends HandlebarsApplicationMixin(ApplicationV2) {
     });
     root.querySelector("[data-help]")?.addEventListener("click", () => ImportHelpApp.open());
     root.querySelector("[data-open-watabou]")?.addEventListener("click", () => window.open(WATABOU_URL, "_blank", "noopener"));
+    root.querySelector("[data-open-caves]")?.addEventListener("click", () => window.open(WATABOU_CAVES_URL, "_blank", "noopener"));
     root.querySelector("[data-cancel]")?.addEventListener("click", () => this.close());
     root.querySelector("form")?.addEventListener("submit", (event) => {
       event.preventDefault();

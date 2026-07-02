@@ -203,6 +203,12 @@
   padding-top: 2px;
 }
 
+.watabou-opd-open-links {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
 .watabou-opd-open-button,
 .watabou-opd-actions button {
   min-height: 30px;
@@ -219,6 +225,14 @@
 
 .watabou-opd-open-button {
   align-self: stretch;
+  min-width: 0;
+}
+
+.watabou-opd-open-button span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .watabou-opd-open-button:hover,

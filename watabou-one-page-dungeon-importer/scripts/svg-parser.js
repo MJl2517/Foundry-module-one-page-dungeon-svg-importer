@@ -20,22 +20,27 @@ export function buildWatabouSceneImport(svgText, options = {}) {
   if (!floorPaths.length) throw new Error(game.i18n.localize("WatabouOPD.MissingFloor"));
   assertSupportedMapTransform(floorPaths);
 
-  const floorSubpaths = [];
+  const rawFloorSubpaths = [];
   for (const path of floorPaths) {
     const transform = cumulativeTransform(path);
     const subpaths = parsePathSubpaths(path.getAttribute("d") ?? "");
     for (const subpath of subpaths) {
       if (subpath.length < 3) continue;
-      floorSubpaths.push(subpath.map((point) => applyMatrix(transform, point)));
+      rawFloorSubpaths.push(subpath.map((point) => applyMatrix(transform, point)));
     }
   }
 
-  if (!floorSubpaths.length) throw new Error(game.i18n.localize("WatabouOPD.MissingFloor"));
+  if (!rawFloorSubpaths.length) throw new Error(game.i18n.localize("WatabouOPD.MissingFloor"));
+
+  const floorGeometry = classifyFloorSubpaths(rawFloorSubpaths);
+  const floorSubpaths = floorGeometry.floors;
+  const solidSubpaths = floorGeometry.solids;
+  const wallCandidateSubpaths = floorSubpaths.concat(solidSubpaths);
 
   const svgGridSize = detectSvgGridSize(floorPaths, floorSubpaths) ?? FALLBACK_SVG_GRID_SIZE;
   const rawDoorLines = findDoorLines(root);
-  const floorBounds = boundsFromPoints(floorSubpaths.flat());
-  const floorGrid = buildCellGeometry(floorSubpaths, svgGridSize, WALL_GRID_SUBDIVISIONS);
+  const floorBounds = boundsFromPoints(wallCandidateSubpaths.flat());
+  const floorGrid = buildCellGeometry(floorSubpaths, svgGridSize, WALL_GRID_SUBDIVISIONS, solidSubpaths);
   const secretPassages = findSecretPassagesFromNarrowPolygons(floorSubpaths, svgGridSize, floorGrid?.boundaryEdges ?? []);
   const secretDoorLines = secretPassages.doors;
   const secretOpeningLines = secretPassages.openings;
@@ -43,7 +48,7 @@ export function buildWatabouSceneImport(svgText, options = {}) {
   const doorLines = normalizeDoorLinesToGrid(rawDoorLines, floorBounds, svgGridSize)
     .filter((door) => !isNearExistingDoor(door, secretDoorLines, svgGridSize / 2));
   const contentBounds = boundsFromPoints([
-    ...floorSubpaths.flat(),
+    ...wallCandidateSubpaths.flat(),
     ...doorLines.flatMap((door) => [door.a, door.b]),
     ...secretDoorLines.flatMap((door) => [door.a, door.b]),
     ...secretOpeningLines.flatMap((door) => [door.a, door.b]),
@@ -60,7 +65,19 @@ export function buildWatabouSceneImport(svgText, options = {}) {
     y: round((point.y - crop.y) * scale)
   });
 
-  const boundaryEdges = floorGrid?.boundaryEdges ?? buildBoundaryEdges(floorSubpaths);
+  const cellBoundaryEdges = floorGrid?.boundaryEdges ?? buildBoundaryEdges(wallCandidateSubpaths);
+  const preciseBoundary = buildPreciseBoundaryEdges(
+    wallCandidateSubpaths,
+    cellBoundaryEdges,
+    svgGridSize / WALL_GRID_SUBDIVISIONS,
+    solidSubpaths
+  );
+  const boundaryEdges = replaceSteppedBoundaryEdges(
+    cellBoundaryEdges,
+    preciseBoundary.edges,
+    preciseBoundary.maskEdges,
+    svgGridSize / WALL_GRID_SUBDIVISIONS
+  ).concat(buildConnectorBoundaryEdges(floorSubpaths, svgGridSize, svgGridSize / WALL_GRID_SUBDIVISIONS));
   const regularWalls = boundaryEdges.map((edge) => wallFromPoints(toScene(edge.a), toScene(edge.b)));
   const doorWalls = doorLines.map((door) => ({
     ...wallFromPoints(toScene(door.a), toScene(door.b)),
@@ -334,7 +351,154 @@ function buildBoundaryEdges(subpaths) {
   ];
 }
 
-function buildCellGeometry(subpaths, cellSize, subdivisions = 1) {
+function classifyFloorSubpaths(subpaths) {
+  const floors = [];
+  const solids = [];
+
+  for (const polygon of subpaths) {
+    const point = polygonRepresentativePoint(polygon);
+    const depth = subpaths.filter((candidate) => candidate !== polygon && pointInPolygon(point, candidate)).length;
+    if (depth % 2 === 0) floors.push(polygon);
+    else solids.push(polygon);
+  }
+
+  return { floors, solids };
+}
+
+function polygonRepresentativePoint(polygon) {
+  const bounds = boundsFromPoints(polygon);
+  return {
+    x: (bounds.minX + bounds.maxX) / 2,
+    y: (bounds.minY + bounds.maxY) / 2
+  };
+}
+
+function buildPreciseBoundaryEdges(subpaths, cellBoundaryEdges, tolerance, solidSubpaths = []) {
+  const edges = [];
+  const maskEdges = [];
+
+  for (const polygon of subpaths) {
+    if (!polygonHasNonAxisSegment(polygon)) continue;
+    const solid = solidSubpaths.includes(polygon);
+
+    for (let i = 0; i < polygon.length - 1; i += 1) {
+      const a = polygon[i];
+      const b = polygon[i + 1];
+      if (samePoint(a, b)) continue;
+      const edge = roundLine({ a, b });
+      if (!isPreciseEdgeSupportedByCellBoundary(edge, cellBoundaryEdges, tolerance)) continue;
+      maskEdges.push(edge);
+      if (!solid && isPreciseEdgeConnectedToOtherFloor(edge, polygon, subpaths, tolerance)) continue;
+      edges.push(edge);
+    }
+  }
+
+  return {
+    edges: dedupeLines(edges),
+    maskEdges: dedupeLines(maskEdges)
+  };
+}
+
+function isPreciseEdgeSupportedByCellBoundary(edge, cellBoundaryEdges, tolerance) {
+  const midpoint = lineMidpoint(edge);
+  return cellBoundaryEdges.some((cellEdge) => {
+    if (distancePointToSegment(midpoint, cellEdge) <= tolerance) return true;
+    return distancePointToSegment(lineMidpoint(cellEdge), edge) <= tolerance;
+  });
+}
+
+function isPreciseEdgeConnectedToOtherFloor(edge, sourcePolygon, polygons, tolerance) {
+  const edgeBounds = expandBounds(boundsFromPoints([edge.a, edge.b]), tolerance);
+  return polygons.some((polygon) => {
+    if (polygon === sourcePolygon) return false;
+    if (!boundsOverlap(edgeBounds, boundsFromPoints(polygon))) return false;
+    return distanceLineToPolygon(edge, polygon) <= tolerance;
+  });
+}
+
+function distanceLineToPolygon(line, polygon) {
+  let minDistance = Math.min(
+    ...polygon.map((point) => distancePointToSegment(point, line)),
+    distancePointToPolygon(lineMidpoint(line), polygon)
+  );
+
+  for (let i = 0; i < polygon.length - 1; i += 1) {
+    const edge = { a: polygon[i], b: polygon[i + 1] };
+    minDistance = Math.min(
+      minDistance,
+      distancePointToSegment(line.a, edge),
+      distancePointToSegment(line.b, edge),
+      distancePointToSegment(lineMidpoint(edge), line)
+    );
+  }
+
+  return minDistance;
+}
+
+function distancePointToPolygon(point, polygon) {
+  if (pointInPolygon(point, polygon)) return 0;
+
+  let minDistance = Number.POSITIVE_INFINITY;
+  for (let i = 0; i < polygon.length - 1; i += 1) {
+    minDistance = Math.min(minDistance, distancePointToSegment(point, { a: polygon[i], b: polygon[i + 1] }));
+  }
+  return minDistance;
+}
+
+function polygonHasNonAxisSegment(points) {
+  for (let i = 0; i < points.length - 1; i += 1) {
+    const line = { a: points[i], b: points[i + 1] };
+    if (!isAxisAlignedLine(line) && lineLength(line) > EPSILON) return true;
+  }
+  return false;
+}
+
+function replaceSteppedBoundaryEdges(cellBoundaryEdges, preciseBoundaryEdges, maskEdges, tolerance) {
+  if (!maskEdges.length) return cellBoundaryEdges;
+
+  const filteredCellEdges = cellBoundaryEdges.filter((edge) => {
+    const midpoint = lineMidpoint(edge);
+    return !maskEdges.some((maskEdge) => distancePointToSegment(midpoint, maskEdge) <= tolerance);
+  });
+
+  return dedupeLines(filteredCellEdges.concat(preciseBoundaryEdges));
+}
+
+function buildConnectorBoundaryEdges(subpaths, cellSize, tolerance) {
+  const edges = [];
+
+  for (const polygon of subpaths) {
+    if (!isSmallAxisAlignedPolygon(polygon, cellSize)) continue;
+
+    for (let i = 0; i < polygon.length - 1; i += 1) {
+      const edge = roundLine({ a: polygon[i], b: polygon[i + 1] });
+      if (samePoint(edge.a, edge.b)) continue;
+      if (isConnectorEdgeSharedWithOtherFloor(edge, polygon, subpaths, tolerance)) continue;
+      edges.push(edge);
+    }
+  }
+
+  return dedupeLines(edges);
+}
+
+function isSmallAxisAlignedPolygon(polygon, cellSize) {
+  if (polygonHasNonAxisSegment(polygon)) return false;
+  const bounds = boundsFromPoints(polygon);
+  const width = bounds.maxX - bounds.minX;
+  const height = bounds.maxY - bounds.minY;
+  return width <= cellSize * 1.25 && height <= cellSize * 1.25;
+}
+
+function isConnectorEdgeSharedWithOtherFloor(edge, sourcePolygon, polygons, tolerance) {
+  const midpoint = lineMidpoint(edge);
+  return polygons.some((polygon) => {
+    if (polygon === sourcePolygon) return false;
+    if (!boundsOverlap(expandBounds(boundsFromPoints([edge.a, edge.b]), tolerance), boundsFromPoints(polygon))) return false;
+    return distancePointToPolygon(midpoint, polygon) <= tolerance * 0.25;
+  });
+}
+
+function buildCellGeometry(subpaths, cellSize, subdivisions = 1, solidSubpaths = []) {
   if (!Number.isFinite(cellSize) || cellSize <= EPSILON) return null;
   const stepSize = cellSize / Math.max(1, Math.floor(subdivisions));
 
@@ -360,6 +524,24 @@ function buildCellGeometry(subpaths, cellSize, subdivisions = 1) {
           y: origin.y + (row + 0.5) * stepSize
         };
         if (pointInPolygon(center, polygon)) occupied.add(cellKey(column, row));
+      }
+    }
+  }
+
+  for (const polygon of solidSubpaths) {
+    const polygonBounds = boundsFromPoints(polygon);
+    const minColumn = Math.floor((polygonBounds.minX - origin.x) / stepSize - EPSILON);
+    const maxColumn = Math.ceil((polygonBounds.maxX - origin.x) / stepSize + EPSILON) - 1;
+    const minRow = Math.floor((polygonBounds.minY - origin.y) / stepSize - EPSILON);
+    const maxRow = Math.ceil((polygonBounds.maxY - origin.y) / stepSize + EPSILON) - 1;
+
+    for (let column = minColumn; column <= maxColumn; column += 1) {
+      for (let row = minRow; row <= maxRow; row += 1) {
+        const center = {
+          x: origin.x + (column + 0.5) * stepSize,
+          y: origin.y + (row + 0.5) * stepSize
+        };
+        if (pointInPolygon(center, polygon)) occupied.delete(cellKey(column, row));
       }
     }
   }
@@ -621,6 +803,36 @@ function isNearExistingDoor(line, doors, tolerance) {
 
 function isHorizontalLine(line) {
   return Math.abs(line.a.y - line.b.y) <= EPSILON;
+}
+
+function isVerticalLine(line) {
+  return Math.abs(line.a.x - line.b.x) <= EPSILON;
+}
+
+function isAxisAlignedLine(line) {
+  return isHorizontalLine(line) || isVerticalLine(line);
+}
+
+function lineMidpoint(line) {
+  return pointOnSegment(line.a, line.b, 0.5);
+}
+
+function pointOnSegment(a, b, ratio) {
+  return {
+    x: a.x + (b.x - a.x) * ratio,
+    y: a.y + (b.y - a.y) * ratio
+  };
+}
+
+function distancePointToSegment(point, line) {
+  const dx = line.b.x - line.a.x;
+  const dy = line.b.y - line.a.y;
+  const lengthSquared = dx * dx + dy * dy;
+  if (lengthSquared <= EPSILON) return Math.hypot(point.x - line.a.x, point.y - line.a.y);
+
+  const ratio = Math.max(0, Math.min(1, ((point.x - line.a.x) * dx + (point.y - line.a.y) * dy) / lengthSquared));
+  const closest = pointOnSegment(line.a, line.b, ratio);
+  return Math.hypot(point.x - closest.x, point.y - closest.y);
 }
 
 function rangesOverlap(first, second, tolerance = 0) {
@@ -933,10 +1145,28 @@ function boundsFromPoints(points) {
   };
 }
 
+function expandBounds(bounds, amount) {
+  return {
+    minX: bounds.minX - amount,
+    maxX: bounds.maxX + amount,
+    minY: bounds.minY - amount,
+    maxY: bounds.maxY + amount
+  };
+}
+
+function boundsOverlap(first, second) {
+  return first.minX <= second.maxX + EPSILON
+    && first.maxX + EPSILON >= second.minX
+    && first.minY <= second.maxY + EPSILON
+    && first.maxY + EPSILON >= second.minY;
+}
+
 function dedupeLines(lines) {
   const seen = new Set();
   return lines.filter((line) => {
-    const key = `${quantize(line.a.x)}:${quantize(line.a.y)}:${quantize(line.b.x)}:${quantize(line.b.y)}`;
+    const forward = `${quantize(line.a.x)}:${quantize(line.a.y)}:${quantize(line.b.x)}:${quantize(line.b.y)}`;
+    const backward = `${quantize(line.b.x)}:${quantize(line.b.y)}:${quantize(line.a.x)}:${quantize(line.a.y)}`;
+    const key = forward < backward ? forward : backward;
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
